@@ -11,7 +11,7 @@ Jogo de estratégia baseado em cultivação imortal com sistemas complexos de ev
 - 💾 Sistema completo de salvamento
 
 ## Como Executar
-Basta abrir o arquivo `cultivator_apotheosis.html` em qualquer navegador moderno.
+Basta abrir o arquivo `index.html` em qualquer navegador moderno.
 
 ## Controles
 - Clique em células para interagir
