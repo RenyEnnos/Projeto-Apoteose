@@ -1,3 +1,6 @@
+import { gameState } from '../core/gameState.js';
+import { log } from '../utils/helpers.js';
+
 export function initApertureGrid(size) {
     const grid = [];
     for (let i = 0; i < size * size; i++) {
@@ -12,9 +15,6 @@ export function terraformCell(grid, x, y, size, daoType, amount) {
     if (!cell.marks[daoType]) cell.marks[daoType] = 0;
     cell.marks[daoType] += amount;
 }
-
-import { gameState } from '../core/gameState.js';
-import { log } from '../utils/helpers.js';
 
 export function createFissure() {
     const size = gameState.aperture.size;

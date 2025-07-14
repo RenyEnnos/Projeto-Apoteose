@@ -58,4 +58,3 @@ export const gameState = {
     deaths: 0,
     soulWounded: false
 };
-

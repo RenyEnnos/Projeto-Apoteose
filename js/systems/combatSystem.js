@@ -1,3 +1,9 @@
+import { GameData } from '../core/constants.js';
+import { gameState } from '../core/gameState.js';
+import { log } from '../utils/helpers.js';
+import { chooseAbility } from '../ui/uiManager.js';
+import { createFissure } from './apertureSystem.js';
+
 export function calculateStability(tags) {
     let penalty = 0;
     tags.forEach(t => {
@@ -33,11 +39,6 @@ export function useAbility(ability, player, enemy) {
     enemy.hp -= damage;
     return { outcome: 'hit', damage };
 }
-
-import { GameData } from '../core/constants.js';
-import { gameState } from '../core/gameState.js';
-import { log } from '../utils/helpers.js';
-import { chooseAbility } from '../ui/uiManager.js';
 
 export function engageCombat(enemy){
     log(`Combate iniciado com: ${enemy.name}`, 'danger');
@@ -99,4 +100,3 @@ function handleDeath(){
         }
     }
 }
-import { createFissure } from './apertureSystem.js';
