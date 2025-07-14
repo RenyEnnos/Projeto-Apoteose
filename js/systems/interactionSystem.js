@@ -1,4 +1,3 @@
-export { cellClickHandler, handleCellInteraction, handleApertureInteraction };
 
 import { GameData } from '../core/constants.js';
 import { gameState } from '../core/gameState.js';
@@ -141,3 +140,5 @@ function checkRealmUp() {
         }
     }
 }
+
+export { cellClickHandler, handleCellInteraction, handleApertureInteraction, checkRealmUp };
