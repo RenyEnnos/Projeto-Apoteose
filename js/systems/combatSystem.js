@@ -1,7 +1,6 @@
 import { GameData } from '../core/constants.js';
 import { gameState } from '../core/gameState.js';
 import { log } from '../utils/helpers.js';
-import { chooseAbility } from '../ui/uiManager.js';
 import { createFissure } from './apertureSystem.js';
 
 export function calculateStability(tags) {
@@ -40,43 +39,55 @@ export function useAbility(ability, player, enemy) {
     return { outcome: 'hit', damage };
 }
 
-export function engageCombat(enemy){
+// A função agora recebe a habilidade escolhida como um parâmetro
+export function engageCombat(enemy, chosenAbility){
     log(`Combate iniciado com: ${enemy.name}`, 'danger');
     let playerQi = gameState.player.qi;
     let enemyState = { hp: enemy.hp };
-    const ability = chooseAbility();
-    while(playerQi>0 && enemyState.hp>0){
-        if(ability){
-            const result = useAbility(ability, gameState.player, enemyState);
-            playerQi = gameState.player.qi;
-            if(result.outcome==='no_qi'){
-                log('Qi insuficiente para usar a habilidade!', 'danger');
-            }else if(result.outcome==='failure'){
-                log('Sua habilidade falhou catastroficamente!', 'danger');
-                playerQi -= 50;
-            }else{
-                log(`Você usou ${ability.name} causando ${result.damage} de dano!`, 'important');
-            }
+    
+    // Usa a habilidade fornecida
+    if(chosenAbility){
+        const result = useAbility(chosenAbility, gameState.player, enemyState);
+        playerQi = gameState.player.qi;
+        if(result.outcome==='no_qi'){
+            log('Qi insuficiente para usar a habilidade!', 'danger');
+        }else if(result.outcome==='failure'){
+            log('Sua habilidade falhou catastroficamente!', 'danger');
+            playerQi -= 50;
         }else{
-            const dmg = 20 + Math.floor(Math.random()*30);
-            enemyState.hp -= dmg;
-            log(`Você causou ${dmg} de dano ao ${enemy.name}!`, 'important');
+            log(`Você usou ${chosenAbility.name} causando ${result.damage} de dano!`, 'important');
         }
-        if(enemyState.hp<=0)break;
+    }else{
+        // Ataque padrão se nenhuma habilidade for escolhida
+        const dmg = 20 + Math.floor(Math.random()*30);
+        enemyState.hp -= dmg;
+        log(`Você causou ${dmg} de dano ao ${enemy.name}!`, 'important');
+    }
+    
+    if(enemyState.hp > 0) {
         const enemyDmg = enemy.power + Math.floor(Math.random()*10);
         playerQi -= enemyDmg;
         log(`O ${enemy.name} causou ${enemyDmg} de dano a você!`, 'danger');
     }
+
     gameState.player.qi = Math.max(0, playerQi);
-    if(playerQi<=0){
+
+    if(playerQi <= 0){
         handleDeath();
         return 'lose';
     }
-    const expGained = enemy.power * 10;
-    gameState.player.exp += expGained;
-    log(`Você derrotou o ${enemy.name} e ganhou ${expGained} EXP!`, 'success');
-    return 'win';
+
+    if(enemyState.hp <= 0) {
+        const expGained = enemy.power * 10;
+        gameState.player.exp += expGained;
+        log(`Você derrotou o ${enemy.name} e ganhou ${expGained} EXP!`, 'success');
+        return 'win';
+    }
+    
+    // Se ninguém morreu, o combate pode continuar em um próximo turno (lógica a ser implementada no futuro)
+    return 'ongoing'; 
 }
+
 
 function handleDeath(){
     gameState.deaths++;

@@ -3,7 +3,7 @@ import { GameData } from '../core/constants.js';
 import { gameState } from '../core/gameState.js';
 import { log } from '../utils/helpers.js';
 import { engageCombat } from './combatSystem.js';
-import { showPlantingMenu, showFactionDialog } from '../ui/uiManager.js';
+import { showPlantingMenu, showFactionDialog, chooseAbility } from '../ui/uiManager.js';
 
 function cellClickHandler(x, y) {
     if (gameState.world.currentView === 'external') {
@@ -35,7 +35,11 @@ function handleCellInteraction(cell, x, y) {
     switch (cell.type) {
         case 'enemy':
             const enemyType = GameData.enemies[Math.floor(Math.random() * GameData.enemies.length)];
-            const result = engageCombat(enemyType);
+            // Primeiro, o jogador escolhe a habilidade
+            const chosenAbility = chooseAbility();
+            // Em seguida, a habilidade escolhida (ou null) é passada para o sistema de combate
+            const result = engageCombat(enemyType, chosenAbility);
+            
             if (result === 'win') {
                 cell.type = 'empty';
                 enemyType.loot.forEach(loot => {
