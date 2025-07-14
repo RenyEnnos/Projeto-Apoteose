@@ -1,193 +1,125 @@
 import { GameData } from "./core/constants.js";
-import { gameState } from "./core/gameState.js";
+import { gameState, getGameState, setGameState } from "./core/gameState.js";
 import { render } from "./rendering/renderer.js";
 import { startGameLoop } from "./core/gameLoop.js";
 import { generateWorld } from "./systems/worldGeneration.js";
-import { initApertureGrid, createFissure } from "./systems/apertureSystem.js";
+import { initApertureGrid, createFissure, updateApertureEcology } from "./systems/apertureSystem.js";
 import { generateQuests } from "./systems/questSystem.js";
-import * as UI from "./ui/uiManager.js";
 import { setRuneMap } from "./ui/uiManager.js";
 import { log } from "./utils/helpers.js";
+import { initializeEventListeners } from "./ui/eventHandlers.js";
 
-// ===== GAME INITIALIZATION =====
-window.onload = function() {
-    initGame();
-    document.getElementById('loading-screen').style.display = 'none';
-};
-
-function initGame() {
-    if (localStorage.getItem('apoteose_save_v3')) {
-        loadGame();
-    } else {
-        setupWorld();
-        const map = {};
-        for (const cat in GameData.runes) {
-            GameData.runes[cat].forEach(r => map[r.id] = r);
-        }
-        setRuneMap(map);
-        generateQuests(gameState);
-        log('Bem-vindo ao Projeto Apoteose. Sua jornada para a imortalidade começa agora.', 'important');
+// --- Public API for Event Handlers ---
+export function toggleView() {
+    if (!getGameState().aperture.unlocked) {
+        log('Você ainda não despertou sua Abertura Imortal.', 'danger');
+        return;
     }
-    render(gameState);
-    startGameLoop(updateGame, () => render(gameState), 1000);
+    const currentState = getGameState();
+    currentState.world.currentView = currentState.world.currentView === 'external' ? 'aperture' : 'external';
+    setGameState(currentState);
+    log(`Visão alterada para: ${currentState.world.currentView === 'external' ? 'Mundo Exterior' : 'Abertura Imortal'}.`);
 }
 
-function setupWorld() {
-    generateWorld(gameState);
-    gameState.aperture.grid = initApertureGrid(gameState.aperture.size);
-    gameState.factions.forEach(faction => {
-        const index = faction.position.y * gameState.world.sizeX + faction.position.x;
-        gameState.world.grid[index].faction = faction.id;
-    });
-}
-
-// ===== GAME LOOP =====
-
-function updateGame() {
-    gameState.time.tick++;
-    
-    // Daily update
-    if (gameState.time.tick >= 100) {
-        gameState.time.tick = 0;
-        gameState.time.day++;
-        log(`Um novo dia amanhece. É o Dia ${gameState.time.day}.`);
-        handleDailyEvents();
-    }
-    
-    // Update aperture ecology
-    if (gameState.aperture.unlocked) {
-        updateApertureEcology();
-    }
-    
-    // Update factions
-    updateFactions();
-}
-
-function handleDailyEvents() {
-    // Resource regeneration
-    if (Math.random() > 0.3) {
-        log("A energia espiritual do mundo se renovou.", 'success');
-    }
-    
-    // Random events
-    const events = [
-        "Uma brisa espiritual carregada de energia positiva flui pela região.",
-        "Mercadores viajantes chegaram à vila próxima com itens raros.",
-        "Uma anomalia espacial foi detectada nas montanhas ao norte.",
-        "Um antigo pergaminho de técnicas foi descoberto em ruínas próximas."
-    ];
-    
-    if (Math.random() > 0.7) {
-        log(events[Math.floor(Math.random() * events.length)], 'important');
-    }
-}
-
-function updateApertureEcology() {
-    // Update flora growth
-    gameState.aperture.flora.forEach(plant => {
-        plant.growthProgress++;
-        if (plant.growthProgress >= GameData.flora.find(p => p.id === plant.id).growthTime) {
-            log(`${GameData.flora.find(p => p.id === plant.id).name} está pronta para colheita na Abertura!`, 'success');
-        }
-    });
-    
-    // Update fauna reproduction
-    gameState.aperture.fauna.forEach(animal => {
-        animal.reproductionProgress++;
-        const species = GameData.fauna.find(a => a.id === animal.id);
-        if (animal.reproductionProgress >= species.reproducesIn) {
-            animal.reproductionProgress = 0;
-            
-            // Find an empty spot for the offspring
-            const emptyCells = [];
-            for (let y = 0; y < gameState.aperture.size; y++) {
-                for (let x = 0; x < gameState.aperture.size; x++) {
-                    const index = y * gameState.aperture.size + x;
-                    if (!gameState.aperture.grid[index].fauna) {
-                        emptyCells.push({x, y});
-                    }
-                }
-            }
-            
-            if (emptyCells.length > 0) {
-                const spot = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-                gameState.aperture.fauna.push({
-                    id: animal.id,
-                    position: spot,
-                    health: 100,
-                    reproductionProgress: 0
-                });
-                log(`Um novo ${species.name} nasceu na sua Abertura!`, 'success');
-            }
-        }
-    });
-    
-    // Update fissures
-    if (gameState.aperture.stability < 80 && Math.random() > 0.8) {
-        createFissure();
-    }
-}
-
-function updateFactions() {
-    // Simple faction behavior
-    gameState.factions.forEach(faction => {
-        if (Math.random() > 0.7) {
-            faction.power += Math.floor(Math.random() * 5) - 2;
-            faction.power = Math.max(10, faction.power);
-        }
-        
-        if (faction.relation < 50 && Math.random() > 0.8) {
-            faction.relation += Math.floor(Math.random() * 3);
-        }
-    });
-}
-
-// ===== UTILITY FUNCTIONS =====
-function saveGame() {
+export function saveGame() {
     try {
-        localStorage.setItem('apoteose_save_v3', JSON.stringify(gameState));
+        localStorage.setItem('apoteose_save_v3', JSON.stringify(getGameState()));
         log('Progresso salvo com sucesso!', 'success');
     } catch (e) {
         log('Falha ao salvar o jogo. O armazenamento pode estar cheio.', 'danger');
+        console.error("Failed to save game:", e);
     }
 }
 
-function loadGame() {
-    const savedState = localStorage.getItem('apoteose_save_v3');
-    if (savedState) {
-        gameState = JSON.parse(savedState);
-        log('Jogo carregado com sucesso!', 'success');
-        const map = {};
-        for (const cat in GameData.runes) {
-            GameData.runes[cat].forEach(r => map[r.id] = r);
+export function loadGame() {
+    const savedStateJSON = localStorage.getItem('apoteose_save_v3');
+    if (savedStateJSON) {
+        try {
+            const savedState = JSON.parse(savedStateJSON);
+            setGameState(savedState);
+            const runeMap = {};
+            for (const cat in GameData.runes) {
+                GameData.runes[cat].forEach(r => runeMap[r.id] = r);
+            }
+            setRuneMap(runeMap);
+            log('Jogo carregado com sucesso!', 'success');
+            render(getGameState()); // Re-render after loading
+        } catch (e) {
+            log('Falha ao carregar o jogo. O arquivo salvo pode estar corrompido.', 'danger');
+            console.error("Failed to load game:", e);
         }
-        setRuneMap(map);
     } else {
         log('Nenhum jogo salvo encontrado.', 'danger');
     }
 }
 
-function toggleView() {
-    if (!gameState.aperture.unlocked) {
-        log('Você ainda não despertou sua Abertura Imortal.', 'danger');
-        return;
+
+// ===== GAME INITIALIZATION =====
+window.onload = function() {
+    document.getElementById('loading-screen').style.display = 'flex';
+    initGame();
+    document.getElementById('loading-screen').style.display = 'none';
+};
+
+function initGame() {
+    initializeEventListeners(); // Set up all event listeners
+    const savedState = localStorage.getItem('apoteose_save_v3');
+
+    if (savedState) {
+        loadGame();
+    } else {
+        let newGameState = getGameState();
+        generateWorld(newGameState);
+        newGameState.aperture.grid = initApertureGrid(newGameState.aperture.size);
+        newGameState.factions.forEach(faction => {
+            const index = faction.position.y * newGameState.world.sizeX + faction.position.x;
+            newGameState.world.grid[index].faction = faction.id;
+        });
+        
+        const runeMap = {};
+        for (const cat in GameData.runes) {
+            GameData.runes[cat].forEach(r => runeMap[r.id] = r);
+        }
+        setRuneMap(runeMap);
+        generateQuests(newGameState);
+        setGameState(newGameState);
+        log('Bem-vindo ao Projeto Apoteose. Sua jornada para a imortalidade começa agora.', 'important');
     }
-    gameState.world.currentView = gameState.world.currentView === 'external' ? 'aperture' : 'external';
-    log(`Visão alterada para: ${gameState.world.currentView === 'external' ? 'Mundo Exterior' : 'Abertura Imortal'}.`);
+
+    render(getGameState());
+    // The main game loop
+    startGameLoop(updateGame, () => render(getGameState()));
 }
 
-window.toggleView = toggleView;
-window.saveGame = saveGame;
-window.loadGame = loadGame;
-window.showResearch = UI.showResearch;
-window.showQuests = UI.showQuests;
-window.showCodex = UI.showCodex;
-window.showPlantingMenu = UI.showPlantingMenu;
-window.plantFlora = UI.plantFlora;
-window.acceptQuest = UI.acceptQuest;
-window.showFactionDialog = UI.showFactionDialog;
-window.showApertureManagement = UI.showApertureManagement;
-window.craftAbility = UI.craftAbility;
-window.allowDrop = UI.allowDrop;
-window.dragRune = UI.dragRune;
-window.dropRune = UI.dropRune;
+
+// ===== GAME LOGIC =====
+
+function updateGame() {
+    let currentGameState = getGameState();
+    
+    // Update game time
+    currentGameState.time.tick++;
+    if (currentGameState.time.tick >= 10) { // Simplified for faster days
+        currentGameState.time.tick = 0;
+        currentGameState.time.day++;
+        log(`Um novo dia amanhece. É o Dia ${currentGameState.time.day}.`);
+        // Add daily events if any
+    }
+
+    // Update systems
+    if (currentGameState.aperture.unlocked) {
+        updateApertureEcology(currentGameState);
+    }
+    updateFactions(currentGameState);
+
+    setGameState(currentGameState);
+}
+
+function updateFactions(currentGameState) {
+    currentGameState.factions.forEach(faction => {
+        if (Math.random() > 0.95) { // Slower power change
+            faction.power += Math.floor(Math.random() * 5) - 2;
+            faction.power = Math.max(10, faction.power);
+        }
+    });
+}

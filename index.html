@@ -17,25 +17,25 @@
     <div class="game-container">
         <div id="game-viewport">
             <div class="controls">
-                <button class="control-button" onclick="toggleView()" data-tooltip="Alterna a visão entre o Mundo Exterior e sua Abertura Imortal.">
+                <button id="toggle-view-btn" class="control-button" data-tooltip="Alterna a visão entre o Mundo Exterior e sua Abertura Imortal.">
                     <i class="fas fa-exchange-alt"></i> Visão
                 </button>
-                <button class="control-button" onclick="showApertureManagement()" data-tooltip="Gerencie os biomas e a ecologia da sua Abertura.">
+                <button id="manage-aperture-btn" class="control-button" data-tooltip="Gerencie os biomas e a ecologia da sua Abertura.">
                     <i class="fas fa-cog"></i> Gerenciar
                 </button>
-                <button class="control-button" onclick="showResearch()" data-tooltip="Combine Fragmentos de Insight para desbloquear Runas e forjar habilidades.">
+                <button id="research-btn" class="control-button" data-tooltip="Combine Fragmentos de Insight para desbloquear Runas e forjar habilidades.">
                     <i class="fas fa-lightbulb"></i> Pesquisa
                 </button>
-                <button class="control-button" onclick="showQuests()" data-tooltip="Veja as missões disponíveis oferecidas pelas facções.">
+                <button id="quests-btn" class="control-button" data-tooltip="Veja as missões disponíveis oferecidas pelas facções.">
                     <i class="fas fa-scroll"></i> Missões
                 </button>
-                <button class="control-button" onclick="showCodex()" data-tooltip="Consulte suas descobertas sobre o mundo.">
+                <button id="codex-btn" class="control-button" data-tooltip="Consulte suas descobertas sobre o mundo.">
                     <i class="fas fa-book"></i> Codex
                 </button>
-                <button class="control-button" onclick="saveGame()" data-tooltip="Salva seu progresso atual.">
+                <button id="save-game-btn" class="control-button" data-tooltip="Salva seu progresso atual.">
                     <i class="fas fa-save"></i> Salvar
                 </button>
-                <button class="control-button" onclick="loadGame()" data-tooltip="Carrega seu último progresso salvo.">
+                <button id="load-game-btn" class="control-button" data-tooltip="Carrega seu último progresso salvo.">
                     <i class="fas fa-folder-open"></i> Carregar
                 </button>
             </div>
@@ -81,7 +81,7 @@
 
     <div id="modal-container">
         <div class="modal" id="current-modal">
-            <button class="close-modal" onclick="closeModal()">&times;</button>
+            <button id="close-modal-btn" class="close-modal">&times;</button>
             <div id="modal-content"></div>
         </div>
     </div>
