@@ -56,7 +56,39 @@ function showApertureManagement(){
         log('Você ainda não desbloqueou sua Abertura Imortal.','danger');
         return;
     }
-    let c = '<div class="modal-title">Gerenciamento da Abertura Imortal</div><p>Funcionalidade em desenvolvimento.</p>';
+    const a = gameState.aperture;
+    let c = '<div class="modal-title">Gerenciamento da Abertura Imortal</div>';
+    c += '<h3>Status</h3>';
+    c += `<div class="stat-bar"><span class="stat-name">Tamanho:</span> <span class="stat-value">${a.size*a.size} km²</span></div>`;
+    c += `<div class="stat-bar"><span class="stat-name">Estabilidade:</span> <span class="stat-value">${a.stability.toFixed(1)}%</span></div>`;
+    c += `<div class="stat-bar"><span class="stat-name">Fund. da Alma:</span> <span class="stat-value">${a.soulFoundation}</span></div>`;
+    c += '<h3>Flora</h3>';
+    if(a.flora.length===0){
+        c += '<p>Nenhuma planta cultivada.</p>';
+    }else{
+        c += '<ul>';
+        a.flora.forEach(p=>{
+            const data = GameData.flora.find(f=>f.id===p.id);
+            c += `<li>${data.name} (${p.position.x},${p.position.y}) - ${p.growthProgress}/${data.growthTime}</li>`;
+        });
+        c += '</ul>';
+    }
+    c += '<h3>Fauna</h3>';
+    if(a.fauna.length===0){
+        c += '<p>Nenhuma criatura.</p>';
+    }else{
+        c += '<ul>';
+        a.fauna.forEach(f=>{
+            const spec = GameData.fauna.find(s=>s.id===f.id);
+            c += `<li>${spec.name} (${f.position.x},${f.position.y}) - HP ${f.health}</li>`;
+        });
+        c += '</ul>';
+    }
+    if(a.fissures.length>0){
+        c += '<h3>Fissuras</h3><ul>';
+        a.fissures.forEach(f=>{ c += `<li>(${f.x},${f.y})</li>`; });
+        c += '</ul>';
+    }
     showModal(c);
 }
 

@@ -3,7 +3,7 @@ import { gameState } from "./core/gameState.js";
 import { render } from "./rendering/renderer.js";
 import { startGameLoop } from "./core/gameLoop.js";
 import { generateWorld } from "./systems/worldGeneration.js";
-import { initApertureGrid } from "./systems/apertureSystem.js";
+import { initApertureGrid, createFissure } from "./systems/apertureSystem.js";
 import { generateQuests } from "./systems/questSystem.js";
 import * as UI from "./ui/uiManager.js";
 import { setRuneMap } from "./ui/uiManager.js";
@@ -126,16 +126,6 @@ function updateApertureEcology() {
     if (gameState.aperture.stability < 80 && Math.random() > 0.8) {
         createFissure();
     }
-}
-
-function createFissure() {
-    const x = Math.floor(Math.random() * gameState.aperture.size);
-    const y = Math.floor(Math.random() * gameState.aperture.size);
-    const index = y * gameState.aperture.size + x;
-    
-    gameState.aperture.fissures.push({x, y});
-    gameState.aperture.grid[index].fissure = true;
-    log(`Uma fissura espiritual apareceu na sua Abertura em (${x}, ${y})!`, 'danger');
 }
 
 function updateFactions() {
