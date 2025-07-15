@@ -252,3 +252,20 @@ export function showApertureManagement() {
 
     showModal(content);
 }
+
+export function chooseAbility() {
+    if (gameState.player.craftedAbilities.length === 0) {
+        return null;
+    }
+
+    let message = 'Escolha uma habilidade:\n';
+    gameState.player.craftedAbilities.forEach((ab, idx) => {
+        message += `${idx + 1}: ${ab.name} (Custo ${ab.cost} Qi)\n`;
+    });
+    const input = prompt(message + 'Digite o número ou cancele para ataque padrão:');
+    const index = parseInt(input);
+    if (!isNaN(index) && index >= 1 && index <= gameState.player.craftedAbilities.length) {
+        return gameState.player.craftedAbilities[index - 1];
+    }
+    return null;
+}
