@@ -2,7 +2,8 @@
 import {
     toggleView,
     saveGame,
-    loadGame
+    loadGame,
+    configureAI
 } from '../main.js';
 import {
     showApertureManagement,
@@ -21,4 +22,10 @@ export function initializeEventListeners() {
     document.getElementById('save-game-btn').addEventListener('click', saveGame);
     document.getElementById('load-game-btn').addEventListener('click', loadGame);
     document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+    
+    // Adiciona evento para configurar IA se o botão existir
+    const aiBtn = document.getElementById('configure-ai-btn');
+    if (aiBtn) {
+        aiBtn.addEventListener('click', configureAI);
+    }
 }

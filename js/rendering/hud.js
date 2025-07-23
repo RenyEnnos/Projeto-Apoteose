@@ -13,11 +13,11 @@ export function updateHUD(gameState) {
     const realm = GameData.realms[player.realmIndex];
     document.getElementById('cultivation-realm').textContent = realm.name;
     document.getElementById('exp-value').textContent = `${player.exp} / ${realm.expToNext}`;
-    const expPercent = Math.min(100, (player.exp / realm.expToNext) * 100);
+    const expPercent = realm.expToNext > 0 ? Math.min(100, (player.exp / realm.expToNext) * 100) : 0;
     document.getElementById('exp-bar').style.width = `${expPercent}%`;
     document.getElementById('exp-text').textContent = `${expPercent.toFixed(1)}%`;
     document.getElementById('qi-value').textContent = `${player.qi} / ${realm.maxQi}`;
-    const qiPercent = (player.qi / realm.maxQi) * 100;
+    const qiPercent = realm.maxQi > 0 ? (player.qi / realm.maxQi) * 100 : 0;
     document.getElementById('qi-bar').style.width = `${qiPercent}%`;
     document.getElementById('qi-text').textContent = `${qiPercent.toFixed(1)}%`;
     const apertureSection = document.getElementById('aperture-hud');

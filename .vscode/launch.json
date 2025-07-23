@@ -1,0 +1,45 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Debug Projeto Apoteose",
+            "url": "http://localhost:8000",
+            "webRoot": "${workspaceFolder}",
+            "userDataDir": "${workspaceFolder}/.vscode/chrome-debug",
+            "runtimeArgs": [
+                "--remote-debugging-port=9222",
+                "--disable-web-security",
+                "--disable-features=VizDisplayCompositor",
+                "--no-first-run",
+                "--no-default-browser-check"
+            ],
+            "timeout": 30000,
+            "preLaunchTask": "start-server"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Debug Projeto Apoteose (Simple)",
+            "file": "${workspaceFolder}/index.html",
+            "webRoot": "${workspaceFolder}",
+            "userDataDir": "${workspaceFolder}/.vscode/chrome-debug-simple",
+            "runtimeArgs": [
+                "--remote-debugging-port=9223",
+                "--disable-web-security",
+                "--allow-file-access-from-files",
+                "--no-first-run"
+            ],
+            "timeout": 30000
+        },
+        {
+            "type": "chrome",
+            "request": "attach",
+            "name": "Attach to Chrome",
+            "port": 9222,
+            "webRoot": "${workspaceFolder}",
+            "url": "http://localhost:8000/*"
+        }
+    ]
+}

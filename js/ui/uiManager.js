@@ -1,6 +1,6 @@
 // js/ui/uiManager.js
 import { GameData } from '../core/constants.js';
-import { gameState } from '../core/gameState.js';
+import { getGameState, updatePlayerState, addPlayerExp, updateApertureState, updateGameState } from '../core/gameState.js';
 import { createAbility } from '../systems/combatSystem.js';
 import { showModal, closeModal } from '../rendering/modal.js';
 import { log } from '../utils/helpers.js';
@@ -52,7 +52,9 @@ function craftAbility() {
     }
 
     const ability = createAbility(baseRune, modifierRune, vectorRune);
-    gameState.player.craftedAbilities.push(ability);
+    const gameState = getGameState();
+    const newAbilities = [...gameState.player.craftedAbilities, ability];
+    updatePlayerState({ craftedAbilities: newAbilities });
     log(`Habilidade forjada: ${ability.name}! Estabilidade ${ability.stability}%`, 'success');
 
     ['base', 'modifier', 'vector'].forEach(slotType => {
@@ -67,6 +69,7 @@ function plantFlora(event) {
     const plant = GameData.flora.find(p => p.id === plantId);
     if (!plant) return;
 
+    const gameState = getGameState();
     const existing = gameState.aperture.flora.find(p => p.position.x === parseInt(x) && p.position.y === parseInt(y));
     if (existing) {
         log('Já há uma planta nesta posição!', 'danger');
@@ -74,30 +77,49 @@ function plantFlora(event) {
         return;
     }
 
-    gameState.aperture.flora.push({ id: plantId, position: { x: parseInt(x), y: parseInt(y) }, growthProgress: 0 });
+    const newFlora = [...gameState.aperture.flora, { id: plantId, position: { x: parseInt(x), y: parseInt(y) }, growthProgress: 0 }];
+    updateApertureState({ flora: newFlora });
     log(`Você plantou ${plant.name} em (${x}, ${y}).`, 'success');
     closeModal();
 }
 
 function acceptQuest(event) {
     const questId = event.target.dataset.questId;
+    const gameState = getGameState();
     const quest = gameState.quests.find(q => q.id === questId);
     if (!quest) return;
 
     if (quest.completed >= quest.amount) {
-        if (quest.reward.spiritStones) gameState.player.inventory.spiritStones += quest.reward.spiritStones;
-        if (quest.reward.daoMarks) {
-            Object.entries(quest.reward.daoMarks).forEach(([type, amount]) => {
-                gameState.player.daoMarks[type] = (gameState.player.daoMarks[type] || 0) + amount;
-            });
+        const playerUpdates = {};
+        if (quest.reward.spiritStones) {
+            playerUpdates.inventory = {
+                ...gameState.player.inventory,
+                spiritStones: gameState.player.inventory.spiritStones + quest.reward.spiritStones
+            };
         }
-        if (quest.reward.exp) gameState.player.exp += quest.reward.exp;
-
-        const faction = gameState.factions.find(f => f.id === quest.faction);
-        if (faction) faction.relation += 10;
+        if (quest.reward.daoMarks) {
+            const newDaoMarks = { ...gameState.player.daoMarks };
+            Object.entries(quest.reward.daoMarks).forEach(([type, amount]) => {
+                newDaoMarks[type] = (newDaoMarks[type] || 0) + amount;
+            });
+            playerUpdates.daoMarks = newDaoMarks;
+        }
+        if (quest.reward.exp) {
+            addPlayerExp(quest.reward.exp);
+        }
+        
+        if (Object.keys(playerUpdates).length > 0) {
+            updatePlayerState(playerUpdates);
+        }
+        
+        const newFactions = gameState.factions.map(f => 
+            f.id === quest.faction ? { ...f, relation: f.relation + 10 } : f
+        );
+        const newQuests = gameState.quests.filter(q => q.id !== questId);
+        
+        updateGameState({ factions: newFactions, quests: newQuests });
 
         log(`Missão "${quest.title}" completada! Recompensa recebida.`, 'success');
-        gameState.quests = gameState.quests.filter(q => q.id !== questId);
         closeModal();
     } else {
         log(`Missão "${quest.title}" aceita!`, 'important');
@@ -118,6 +140,7 @@ function showCodexTab(event) {
         case 'realms':
             html = '<h3>Reinos de Cultivo</h3>';
             GameData.realms.forEach((realm, index) => {
+                const gameState = getGameState();
                 const isUnlocked = index <= gameState.player.realmIndex;
                 html += `
                     <div class="codex-entry" style="${!isUnlocked ? 'opacity:0.6;' : ''}">
@@ -139,6 +162,7 @@ function showCodexTab(event) {
 export function showResearch() {
     let content = `<div class="modal-title">Mente do Dao</div><p>Combine fragmentos de insight para desbloquear novas runas e forjar habilidades.</p>`;
     content += `<h3>Fragmentos Desbloqueados</h3><div class="research-grid">`;
+    const gameState = getGameState();
     gameState.player.discoveredInsights.forEach(id => {
         const insight = GameData.insights.find(i => i.id === id);
         if (insight) {
@@ -192,6 +216,7 @@ export function showQuests() {
     };
 
     let content = `<div class="modal-title">Quadro de Missões</div><div style="max-height:400px;overflow-y:auto;">`;
+    const gameState = getGameState();
     if (gameState.quests.length > 0) {
         gameState.quests.forEach(q => {
             const faction = gameState.factions.find(f => f.id === q.faction);
@@ -240,6 +265,7 @@ export function showCodex() {
 
 
 export function showApertureManagement() {
+    const gameState = getGameState();
     if (!gameState.aperture.unlocked) {
         log('Você ainda não desbloqueou sua Abertura Imortal.', 'danger');
         return;
@@ -254,18 +280,60 @@ export function showApertureManagement() {
 }
 
 export function chooseAbility() {
-    if (gameState.player.craftedAbilities.length === 0) {
-        return null;
+    const gameState = getGameState();
+    
+    let options = [];
+    let message = 'Escolha sua ação:\n';
+    
+    // Adiciona habilidades criadas
+    if (gameState.player.craftedAbilities.length > 0) {
+        gameState.player.craftedAbilities.forEach((ab, idx) => {
+            options.push(ab);
+            message += `${options.length}: ${ab.name} (${ab.cost} Qi)\n`;
+        });
     }
-
-    let message = 'Escolha uma habilidade:\n';
-    gameState.player.craftedAbilities.forEach((ab, idx) => {
-        message += `${idx + 1}: ${ab.name} (Custo ${ab.cost} Qi)\n`;
-    });
-    const input = prompt(message + 'Digite o número ou cancele para ataque padrão:');
+    
+    // Adiciona ataque básico sempre disponível
+    const basicAttack = {
+        id: 'basic_attack',
+        name: 'Ataque Básico',
+        power: 20,
+        cost: 5,
+        tags: ['básico']
+    };
+    options.push(basicAttack);
+    message += `${options.length}: ${basicAttack.name} (${basicAttack.cost} Qi)\n`;
+    
+    message += '\nDigite o número da sua escolha:';
+    
+    const input = prompt(message);
     const index = parseInt(input);
-    if (!isNaN(index) && index >= 1 && index <= gameState.player.craftedAbilities.length) {
-        return gameState.player.craftedAbilities[index - 1];
+    
+    if (!isNaN(index) && index >= 1 && index <= options.length) {
+        return options[index - 1];
     }
-    return null;
+    
+    // Se cancelar ou input inválido, usa ataque básico
+    return basicAttack;
+}
+
+export function showFactionDialog(faction) {
+    let content = `<div class="modal-title">Facção: ${faction.name}</div>`;
+    content += `<div style="color: ${faction.color}; font-weight: bold; margin-bottom: 10px;">`;
+    content += `Poder: ${faction.power} | Relação: ${faction.relation >= 0 ? '+' : ''}${faction.relation}</div>`;
+    content += `<p>Objetivo: ${faction.goal}</p>`;
+    
+    const relationStatus = faction.relation >= 50 ? 'Amigável' : 
+                          faction.relation >= 0 ? 'Neutro' : 
+                          faction.relation >= -25 ? 'Hostil' : 'Inimigo';
+    
+    content += `<p>Status: <span style="color: ${faction.relation >= 0 ? 'green' : 'red'}">${relationStatus}</span></p>`;
+    
+    if (faction.relation >= 0) {
+        content += '<p>Esta facção pode oferecer missões e comerciar com você.</p>';
+    } else {
+        content += '<p>Esta facção é hostil. Cuidado ao se aproximar!</p>';
+    }
+    
+    showModal(content);
 }

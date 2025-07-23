@@ -1,13 +1,21 @@
 import { GameData } from "./core/constants.js";
-import { gameState, getGameState, setGameState } from "./core/gameState.js";
+import { 
+    getGameState, 
+    setGameState, 
+    toggleWorldView,
+    validateGameState 
+} from "./core/gameState.js";
 import { render } from "./rendering/renderer.js";
 import { startGameLoop } from "./core/gameLoop.js";
 import { generateWorld } from "./systems/worldGeneration.js";
-import { initApertureGrid, createFissure, updateApertureEcology } from "./systems/apertureSystem.js";
+import { initApertureGrid, createFissure } from "./systems/apertureSystem.js";
 import { generateQuests } from "./systems/questSystem.js";
 import { setRuneMap } from "./ui/uiManager.js";
 import { log } from "./utils/helpers.js";
 import { initializeEventListeners } from "./ui/eventHandlers.js";
+import { updateGame } from "./core/gameLogic.js";
+import { aiManager, promptForAPIKey } from "./ai/aiManager.js";
+import { combatAI } from "./ai/combatAI.js";
 
 // --- Public API for Event Handlers ---
 export function toggleView() {
@@ -15,10 +23,8 @@ export function toggleView() {
         log('Você ainda não despertou sua Abertura Imortal.', 'danger');
         return;
     }
-    const currentState = getGameState();
-    currentState.world.currentView = currentState.world.currentView === 'external' ? 'aperture' : 'external';
-    setGameState(currentState);
-    log(`Visão alterada para: ${currentState.world.currentView === 'external' ? 'Mundo Exterior' : 'Abertura Imortal'}.`);
+    const newView = toggleWorldView();
+    log(`Visão alterada para: ${newView === 'external' ? 'Mundo Exterior' : 'Abertura Imortal'}.`);
 }
 
 export function saveGame() {
@@ -31,19 +37,25 @@ export function saveGame() {
     }
 }
 
+export function configureAI() {
+    // IA já está configurada automaticamente com chave hardcoded
+    log('🤖 IA já está configurada e ativa!', 'success');
+}
+
 export function loadGame() {
     const savedStateJSON = localStorage.getItem('apoteose_save_v3');
     if (savedStateJSON) {
         try {
             const savedState = JSON.parse(savedStateJSON);
-            setGameState(savedState);
-            const runeMap = {};
-            for (const cat in GameData.runes) {
-                GameData.runes[cat].forEach(r => runeMap[r.id] = r);
+            if (validateGameState(savedState)) {
+                setGameState(savedState);
+                initializeRuneMap();
+                log('Jogo carregado com sucesso!', 'success');
+                render(getGameState());
+            } else {
+                log('Save file inválido. Iniciando novo jogo.', 'danger');
+                initializeNewGame();
             }
-            setRuneMap(runeMap);
-            log('Jogo carregado com sucesso!', 'success');
-            render(getGameState()); // Re-render after loading
         } catch (e) {
             log('Falha ao carregar o jogo. O arquivo salvo pode estar corrompido.', 'danger');
             console.error("Failed to load game:", e);
@@ -56,9 +68,14 @@ export function loadGame() {
 
 // ===== GAME INITIALIZATION =====
 window.onload = function() {
-    document.getElementById('loading-screen').style.display = 'flex';
-    initGame();
-    document.getElementById('loading-screen').style.display = 'none';
+    try {
+        initGame();
+        document.getElementById('loading-screen').style.display = 'none';
+    } catch (error) {
+        console.error('Error during game initialization:', error);
+        document.getElementById('loading-screen').style.display = 'none';
+        document.body.innerHTML += '<div style="color:red;padding:20px;"><h2>Erro de Inicialização:</h2><pre>' + error.stack + '</pre></div>';
+    }
 };
 
 function initGame() {
@@ -68,52 +85,20 @@ function initGame() {
     if (savedState) {
         loadGame();
     } else {
-        let newGameState = getGameState();
-        generateWorld(newGameState);
-        newGameState.aperture.grid = initApertureGrid(newGameState.aperture.size);
-        newGameState.factions.forEach(faction => {
-            const index = faction.position.y * newGameState.world.sizeX + faction.position.x;
-            newGameState.world.grid[index].faction = faction.id;
-        });
-        
-        const runeMap = {};
-        for (const cat in GameData.runes) {
-            GameData.runes[cat].forEach(r => runeMap[r.id] = r);
-        }
-        setRuneMap(runeMap);
-        generateQuests(newGameState);
-        setGameState(newGameState);
-        log('Bem-vindo ao Projeto Apoteose. Sua jornada para a imortalidade começa agora.', 'important');
+        initializeNewGame();
     }
 
     render(getGameState());
-    // The main game loop
-    startGameLoop(updateGame, () => render(getGameState()));
-}
-
-
-// ===== GAME LOGIC =====
-
-function updateGame() {
-    let currentGameState = getGameState();
     
-    // Update game time
-    currentGameState.time.tick++;
-    if (currentGameState.time.tick >= 10) { // Simplified for faster days
-        currentGameState.time.tick = 0;
-        currentGameState.time.day++;
-        log(`Um novo dia amanhece. É o Dia ${currentGameState.time.day}.`);
-        // Add daily events if any
-    }
-
-    // Update systems
-    if (currentGameState.aperture.unlocked) {
-        updateApertureEcology(currentGameState);
-    }
-    updateFactions(currentGameState);
-
-    setGameState(currentGameState);
+    // The main game loop - render after each update
+    startGameLoop(() => {
+        updateGame();
+        render(getGameState());
+    }, () => {});
 }
+
+
+// ===== INITIALIZATION HELPERS =====
 
 function updateFactions(currentGameState) {
     currentGameState.factions.forEach(faction => {
@@ -122,4 +107,47 @@ function updateFactions(currentGameState) {
             faction.power = Math.max(10, faction.power);
         }
     });
+}
+
+function initializeNewGame() {
+    let newGameState = getGameState();
+    generateWorld(newGameState);
+    newGameState.aperture.grid = initApertureGrid(newGameState.aperture.size);
+    newGameState.factions.forEach(faction => {
+        const index = faction.position.y * newGameState.world.sizeX + faction.position.x;
+        newGameState.world.grid[index].faction = faction.id;
+    });
+    
+    initializeRuneMap();
+    generateQuests(newGameState);
+    setGameState(newGameState);
+    
+    // Auto-configura IA com chave de desenvolvimento (substitua por sua chave)
+    const apiKey = localStorage.getItem('groq_api_key') || 'SUA_CHAVE_GROQ_AQUI';
+    if (apiKey !== 'SUA_CHAVE_GROQ_AQUI') {
+        aiManager.initialize(apiKey);
+    } else {
+        console.log('Configure sua chave API Groq no localStorage: groq_api_key');
+    }
+    const runeMap = {};
+    for (const cat in GameData.runes) {
+        GameData.runes[cat].forEach(r => runeMap[r.id] = r);
+    }
+    combatAI.setRuneMap(runeMap);
+    
+    log('Bem-vindo ao Projeto Apoteose. Sua jornada para a imortalidade começa agora.', 'important');
+    log('🤖 IA de combate ativada automaticamente!', 'success');
+}
+
+function initializeRuneMap() {
+    const runeMap = {};
+    for (const cat in GameData.runes) {
+        GameData.runes[cat].forEach(r => runeMap[r.id] = r);
+    }
+    setRuneMap(runeMap);
+    
+    // Configura IA se disponível
+    if (aiManager.isAvailable()) {
+        combatAI.setRuneMap(runeMap);
+    }
 }

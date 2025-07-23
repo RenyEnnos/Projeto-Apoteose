@@ -19,8 +19,8 @@ export function startGameLoop(update, render) {
             lastUpdateTime += MS_PER_TICK;
         }
 
-        // Render the current state on every frame
-        render();
+        // Only render when logic updates, not every frame
+        // render() is called after update() in main game loop
 
         // Request the next frame
         requestAnimationFrame(gameLoop);

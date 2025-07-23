@@ -1,4 +1,4 @@
-export const gameState = {
+let gameState = {
     version: 3.0,
     player: {
         realmIndex: 0,
@@ -58,3 +58,78 @@ export const gameState = {
     deaths: 0,
     soulWounded: false
 };
+
+// State Management Functions
+export function getGameState() {
+    return gameState;
+}
+
+export function setGameState(newState) {
+    gameState = { ...newState };
+}
+
+export function updateGameState(updates) {
+    gameState = { ...gameState, ...updates };
+}
+
+// Player State Management
+export function updatePlayerState(playerUpdates) {
+    gameState.player = { ...gameState.player, ...playerUpdates };
+}
+
+export function addPlayerExp(exp) {
+    gameState.player.exp += exp;
+}
+
+export function updatePlayerQi(amount) {
+    gameState.player.qi = Math.max(0, gameState.player.qi + amount);
+}
+
+export function updatePlayerPosition(x, y) {
+    gameState.player.position = { x, y };
+}
+
+// Aperture State Management
+export function updateApertureState(apertureUpdates) {
+    gameState.aperture = { ...gameState.aperture, ...apertureUpdates };
+}
+
+export function unlockAperture() {
+    gameState.aperture.unlocked = true;
+}
+
+// World State Management
+export function updateWorldState(worldUpdates) {
+    gameState.world = { ...gameState.world, ...worldUpdates };
+}
+
+export function toggleWorldView() {
+    const currentView = gameState.world.currentView;
+    gameState.world.currentView = currentView === 'external' ? 'aperture' : 'external';
+    return gameState.world.currentView;
+}
+
+// Time Management
+export function incrementTime() {
+    gameState.time.tick++;
+    if (gameState.time.tick >= 10) {
+        gameState.time.tick = 0;
+        gameState.time.day++;
+        return true; // New day
+    }
+    return false;
+}
+
+// Validation Functions
+export function validateGameState(state) {
+    const required = ['player', 'aperture', 'world', 'factions', 'quests', 'time'];
+    return required.every(key => key in state);
+}
+
+export function validatePlayerState(player) {
+    const required = ['realmIndex', 'exp', 'qi', 'position', 'inventory'];
+    return required.every(key => key in player) && 
+           typeof player.realmIndex === 'number' &&
+           typeof player.exp === 'number' &&
+           typeof player.qi === 'number';
+}

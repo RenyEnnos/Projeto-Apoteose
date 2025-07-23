@@ -3,36 +3,36 @@ export const GameData = {
     realms: [
         { 
             name: "Refinamento de Qi", 
-            expToNext: 1000, 
+            expToNext: 800, 
             maxQi: 100,
             unlocks: [],
             description: "O estágio inicial da jornada de cultivo, onde o cultivador aprende a manipular a energia Qi básica."
         },
         { 
             name: "Estabelecimento da Fundação", 
-            expToNext: 5000, 
+            expToNext: 2000, 
             maxQi: 250,
             unlocks: ["aperture"],
             description: "O cultivador fortalece sua base espiritual, preparando-se para criar sua própria Abertura Imortal."
         },
         { 
             name: "Núcleo Dourado", 
-            expToNext: 25000, 
-            maxQi: 1000,
+            expToNext: 5000, 
+            maxQi: 600,
             unlocks: ["advanced_aperture"],
             description: "A energia Qi condensa-se em um núcleo dourado no centro do corpo espiritual."
         },
         { 
             name: "Alma Nascente", 
-            expToNext: 100000, 
-            maxQi: 5000,
+            expToNext: 12000, 
+            maxQi: 1500,
             unlocks: ["subordinates"],
             description: "A alma do cultivador desperta e ganha consciência própria."
         },
         { 
             name: "Imortal Ascendente", 
             expToNext: Infinity, 
-            maxQi: 20000,
+            maxQi: 4000,
             unlocks: ["grotto_heaven"],
             description: "O cultivador transcende as limitações mortais e alcança a imortalidade."
         }

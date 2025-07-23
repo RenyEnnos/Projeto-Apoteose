@@ -34,7 +34,11 @@ function createNoise(seed) {
 
 export function generateWorld(gameState, seed = Math.random()) {
     const noise = createNoise(Math.floor(seed * 65536));
+    const random = mulberry32(Math.floor(seed * 1000));
+    
     gameState.world.grid = [];
+    
+    // Gera biomas e conteúdo
     for (let y = 0; y < gameState.world.sizeY; y++) {
         for (let x = 0; x < gameState.world.sizeX; x++) {
             const n = noise(x / 10, y / 10);
@@ -44,7 +48,43 @@ export function generateWorld(gameState, seed = Math.random()) {
             else if (n < 0.2) biome = 'forest';
             else if (n < 0.5) biome = 'mountain';
             else biome = 'volcanic';
-            gameState.world.grid[y * gameState.world.sizeX + x] = { biome };
+            
+            // Cria célula base
+            const cell = { biome, type: 'empty' };
+            
+            // Evita spawnar conteúdo na posição inicial do jogador
+            const isPlayerStart = gameState.player.position && 
+                (x === gameState.player.position.x && y === gameState.player.position.y);
+            
+            if (!isPlayerStart) {
+                const contentRoll = random();
+                
+                // 20% chance de inimigo (aumentado de 15%)
+                if (contentRoll < 0.20) {
+                    cell.type = 'enemy';
+                }
+                // 18% chance de recurso (aumentado de 10%)
+                else if (contentRoll < 0.38) {
+                    cell.type = 'resource';
+                }
+                // 8% chance de ruína (aumentado de 5%)
+                else if (contentRoll < 0.46) {
+                    cell.type = 'ruin';
+                }
+                // 4% chance de comerciante/evento especial (novo)
+                else if (contentRoll < 0.50) {
+                    cell.type = 'special';
+                }
+                // 50% fica vazio (reduzido de 70%)
+            }
+            
+            gameState.world.grid[y * gameState.world.sizeX + x] = cell;
         }
     }
+    
+    // Estatísticas de geração do mundo (removido console.log para produção)
+    const stats = gameState.world.grid.reduce((acc, cell) => {
+        acc[cell.type] = (acc[cell.type] || 0) + 1;
+        return acc;
+    }, {});
 }
